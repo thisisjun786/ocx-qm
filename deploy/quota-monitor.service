@@ -1,0 +1,22 @@
+[Unit]
+Description=OCX QM — OpenCodex Quota Manager
+After=network-online.target
+
+[Service]
+Type=simple
+# Clone here, or replace WorkingDirectory with your checkout's absolute path.
+WorkingDirectory=%h/ocx-qm
+# Replace /usr/bin/node if Node 24+ is installed elsewhere (command -v node).
+ExecStart=/usr/bin/node src/server.mjs
+Environment=QUOTA_HOST=127.0.0.1
+Environment=QUOTA_PORT=8787
+EnvironmentFile=-%h/.config/ocx-qm/environment
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=default.target
