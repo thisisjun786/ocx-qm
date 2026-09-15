@@ -1,14 +1,43 @@
-name: CI
+name: OCX QM CI
 on:
   pull_request:
-  push:
-    branches: [main]
-  workflow_dispatch:
+    types: [opened, reopened, synchronize, edited]
 permissions:
   contents: read
+concurrency:
+  group: ocx-qm-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 jobs:
-  node:
-    runs-on: ubuntu-latest
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.plan.outputs.app }}
+      release: ${{ steps.plan.outputs.release }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.20.0'
+      - run: npm run check:ci
+      - run: bash scripts/ci/secrets.sh
+      - name: Select checks from the complete PR diff
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REPO: ${{ github.repository }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: node scripts/ci/plan.mjs
+  check:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -16,18 +45,77 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '24'
+          node-version: '24.20.0'
       - run: npm run check
+  tests:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.20.0'
       - run: npm test
-      - name: Browser smoke with synthetic data
-        run: npm run check:ui
+  browser:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.20.0'
+      - run: npm run check:ui
         env:
           QUOTA_UI_CHECK_CHROME: /usr/bin/google-chrome
   macos:
-    runs-on: macos-latest
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: macos-14
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - run: bash macos/build.sh
+  dev-gate:
+    if: always() && github.base_ref != 'main'
+    needs: [changes, check, tests, browser, macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.20.0'
+      - name: Aggregate prerequisite results
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          EXPECTED_RELEASE: 'false'
+        run: node scripts/ci/gate.mjs
+  release-gate:
+    if: always() && github.base_ref == 'main'
+    needs: [changes, check, tests, browser, macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.20.0'
+      - name: Aggregate prerequisite results
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          EXPECTED_RELEASE: 'true'
+        run: node scripts/ci/gate.mjs

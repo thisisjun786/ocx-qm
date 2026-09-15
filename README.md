@@ -280,3 +280,7 @@ Mac repair 0.1.1: the former fixed-parent render hid the initial 173-point popup
 ## License
 
 [MIT](LICENSE). See [CONTRIBUTING](CONTRIBUTING.md) for changes and [SECURITY](SECURITY.md) for private vulnerability reporting.
+
+## Development policy
+
+Development starts from `dev`, the default integration branch. Normal PRs require `dev-gate`; an explicitly authorized `dev -> main` promotion requires `release-gate`. See [POLICY.md](POLICY.md), [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md). The release line is `main`; clone with `--branch main` when you want release-line source.

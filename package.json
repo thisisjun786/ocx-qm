@@ -9,12 +9,13 @@
   "scripts": {
     "start": "node src/server.mjs",
     "compare:ollama": "node src/ollama-comparison.mjs",
-    "check": "node --check src/snapshot.mjs && node --check src/server.mjs && node --check src/identity.mjs && node --check src/history.mjs && node --check src/time.mjs && node --check src/analytics.mjs && node --check src/recommendation.mjs && node --check src/provider-refresh.mjs && node --check src/ollama.mjs && node --check src/collector.mjs && node --check src/pricing.mjs && node --check src/opencode-pricing.mjs && node --check src/pricing-catalog.mjs && node --check src/cursor-cache.mjs && node --check src/ollama-comparison.mjs && node --check src/ollama-comparison-report.mjs && node --check public/app.js && node --check public/format.js && node --check public/quota.js && node --check public/dom.js && node --check public/views.js && node --check public/subscriptions.js && node --check src/subscriptions.mjs && node --check src/subscription-identity.mjs && node --check src/subscription-http.mjs && node --check scripts/import-subscriptions.mjs && node --check scripts/ui-check.mjs && node --check scripts/ui-subscriptions-check.mjs",
+    "check": "node scripts/check-syntax.mjs",
     "test": "node --test tests/*.test.mjs",
     "confirm:scope": "node scripts/confirm-scope.mjs",
     "check:ui": "node scripts/ui-check.mjs",
-    "import:subscriptions": "node scripts/import-subscriptions.mjs"
+    "import:subscriptions": "node scripts/import-subscriptions.mjs",
+    "check:ci": "node --test tests/ci/*.test.mjs"
   },
-  "description": "OCX QM — read-only quota, usage and model-price dashboard for OpenCodex",
+  "description": "OCX QM \u2014 read-only quota, usage and model-price dashboard for OpenCodex",
   "license": "MIT"
 }
